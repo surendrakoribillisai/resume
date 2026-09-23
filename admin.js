@@ -29,32 +29,38 @@ const defaults = {
   ],
 
   education: [],
-
   experience: [],
 
   projects: [
     {
       title: 'Haptic Scene',
-      description: 'AI-powered accessibility concept for communication between people with different communication needs.',
+      description:
+        'AI-powered accessibility concept for communication between people with different communication needs.',
       tags: ['AI', 'Accessibility', 'Product'],
       links: []
     },
     {
       title: 'AI Travel Guide',
-      description: 'Travel product concept focused on personalized discovery and a clear user journey.',
+      description:
+        'Travel product concept focused on personalized discovery and a clear user journey.',
       tags: ['UI/UX', 'Figma', 'Case Study'],
       links: []
     }
   ],
 
   certificates: [],
-
   details: []
 };
+
+
+/* =========================
+   HELPERS
+========================= */
 
 function clone(o) {
   return JSON.parse(JSON.stringify(o));
 }
+
 
 function normalizeProfile(p) {
   const profile = {
@@ -66,8 +72,13 @@ function normalizeProfile(p) {
     ? clone(profile.extra)
     : [];
 
+  // Support old data where Mobile was accidentally stored
+  // as an Additional Profile Field.
   const mobileExtra = extras.find(
-    x => String(x.label || '').trim().toLowerCase() === 'mobile'
+    x =>
+      String(x.label || '')
+        .trim()
+        .toLowerCase() === 'mobile'
   );
 
   if (!profile.mobile && mobileExtra?.value) {
@@ -75,59 +86,73 @@ function normalizeProfile(p) {
   }
 
   profile.extra = extras.filter(
-    x => String(x.label || '').trim().toLowerCase() !== 'mobile'
+    x =>
+      String(x.label || '')
+        .trim()
+        .toLowerCase() !== 'mobile'
   );
 
   return profile;
 }
 
+
+/* =========================
+   LOAD LOCAL DATA
+========================= */
+
 function load() {
   try {
-    const saved = JSON.parse(
+    const s = JSON.parse(
       localStorage.getItem('portfolioData') || '{}'
     );
 
     return {
-      profile: normalizeProfile(saved.profile),
+      profile: normalizeProfile(s.profile),
 
-      links: Array.isArray(saved.links)
-        ? saved.links
+      links: Array.isArray(s.links)
+        ? s.links
         : clone(defaults.links),
 
-      skills: Array.isArray(saved.skills)
-        ? saved.skills
+      skills: Array.isArray(s.skills)
+        ? s.skills
         : clone(defaults.skills),
 
-      education: Array.isArray(saved.education)
-        ? saved.education
+      education: Array.isArray(s.education)
+        ? s.education
         : [],
 
-      experience: Array.isArray(saved.experience)
-        ? saved.experience
+      experience: Array.isArray(s.experience)
+        ? s.experience
         : [],
 
-      projects: Array.isArray(saved.projects)
-        ? saved.projects
+      projects: Array.isArray(s.projects)
+        ? s.projects
         : clone(defaults.projects),
 
-      certificates: Array.isArray(saved.certificates)
-        ? saved.certificates
+      certificates: Array.isArray(s.certificates)
+        ? s.certificates
         : [],
 
-      details: Array.isArray(saved.details)
-        ? saved.details
+      details: Array.isArray(s.details)
+        ? s.details
         : []
     };
 
   } catch (error) {
-    console.error('Local data load failed:', error);
+    console.warn('Local data load failed:', error);
     return clone(defaults);
   }
 }
 
+
 let d = load();
 
 const app = document.getElementById('app');
+
+
+/* =========================
+   HTML ESCAPE
+========================= */
 
 const esc = s =>
   String(s == null ? '' : s)
@@ -136,20 +161,36 @@ const esc = s =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
+
+/* =========================
+   INPUT HELPERS
+========================= */
+
 function input(label, key, value, area = false) {
+
+  if (area) {
+    return `
+      <label>
+        ${label}
+        <textarea data-key="${key}">${esc(value)}</textarea>
+      </label>
+    `;
+  }
+
   return `
     <label>
       ${label}
-      ${
-        area
-          ? `<textarea data-key="${key}">${esc(value)}</textarea>`
-          : `<input data-key="${key}" value="${esc(value)}">`
-      }
+      <input
+        data-key="${key}"
+        value="${esc(value)}"
+      >
     </label>
   `;
 }
 
+
 function extraInput(label, key, value, i) {
+
   return `
     <label>
       ${label}
@@ -162,29 +203,47 @@ function extraInput(label, key, value, i) {
   `;
 }
 
+
+/* =========================
+   MAIN RENDER
+========================= */
+
 function render(tab = 'profile') {
 
-  document.querySelectorAll('.side').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.tab === tab
+  document
+    .querySelectorAll('.side')
+    .forEach(b =>
+      b.classList.toggle(
+        'active',
+        b.dataset.tab === tab
+      )
     );
-  });
 
   let html = '';
+
+
+  /* PROFILE */
 
   if (tab === 'profile') {
     html = profileTab();
   }
 
+
+  /* LINKS */
+
   if (tab === 'links') {
     html = linksTab();
   }
 
+
+  /* EDUCATION */
+
   if (tab === 'education') {
+
     html = arrayTab(
       'Education',
       'education',
+
       () => ({
         title: 'Degree / Course',
         institution: '',
@@ -197,69 +256,175 @@ function render(tab = 'profile') {
         description: '',
         url: ''
       }),
+
       i => `
         <div class="grid">
-          ${input('Degree / Course', 'title', d.education[i].title)}
-          ${input('Institution', 'institution', d.education[i].institution)}
-          ${input('Period', 'period', d.education[i].period)}
-          ${input('Board / University', 'board', d.education[i].board || '')}
-          ${input('Stream / Specialization', 'stream', d.education[i].stream || '')}
-          ${input('CGPA', 'cgpa', d.education[i].cgpa || '')}
-          ${input('Percentage', 'percentage', d.education[i].percentage || '')}
-          ${input('Grade / Class', 'grade', d.education[i].grade || '')}
-          ${input('Link', 'url', d.education[i].url)}
-          ${input('Description', 'description', d.education[i].description, true)}
+
+          ${input(
+            'Degree / Course',
+            'title',
+            d.education[i].title
+          )}
+
+          ${input(
+            'Institution',
+            'institution',
+            d.education[i].institution
+          )}
+
+          ${input(
+            'Period',
+            'period',
+            d.education[i].period
+          )}
+
+          ${input(
+            'Board / University',
+            'board',
+            d.education[i].board || ''
+          )}
+
+          ${input(
+            'Stream / Specialization',
+            'stream',
+            d.education[i].stream || ''
+          )}
+
+          ${input(
+            'CGPA',
+            'cgpa',
+            d.education[i].cgpa || ''
+          )}
+
+          ${input(
+            'Percentage',
+            'percentage',
+            d.education[i].percentage || ''
+          )}
+
+          ${input(
+            'Grade / Class',
+            'grade',
+            d.education[i].grade || ''
+          )}
+
+          ${input(
+            'Link',
+            'url',
+            d.education[i].url || ''
+          )}
+
+          ${input(
+            'Description',
+            'description',
+            d.education[i].description || '',
+            true
+          )}
+
         </div>
       `
     );
   }
 
+
+  /* EXPERIENCE */
+
   if (tab === 'experience') {
+
     html = arrayTab(
       'Experience',
       'experience',
+
       () => ({
         title: 'Role',
         company: '',
         period: '',
         description: ''
       }),
+
       i => `
         <div class="grid">
-          ${input('Role', 'title', d.experience[i].title)}
-          ${input('Company', 'company', d.experience[i].company)}
-          ${input('Period', 'period', d.experience[i].period)}
-          ${input('Description', 'description', d.experience[i].description, true)}
+
+          ${input(
+            'Role',
+            'title',
+            d.experience[i].title
+          )}
+
+          ${input(
+            'Company',
+            'company',
+            d.experience[i].company
+          )}
+
+          ${input(
+            'Period',
+            'period',
+            d.experience[i].period
+          )}
+
+          ${input(
+            'Description',
+            'description',
+            d.experience[i].description,
+            true
+          )}
+
         </div>
       `
     );
   }
 
+
+  /* SKILLS */
+
   if (tab === 'skills') {
+
     html = arrayTab(
       'Skills',
       'skills',
+
       () => ({
         name: 'New Skill',
         details: ''
       }),
+
       i => `
         <div class="grid">
-          ${input('Skill name', 'name', d.skills[i].name)}
-          ${input('Skill details', 'details', d.skills[i].details)}
+
+          ${input(
+            'Skill name',
+            'name',
+            d.skills[i].name
+          )}
+
+          ${input(
+            'Skill details',
+            'details',
+            d.skills[i].details
+          )}
+
         </div>
       `
     );
   }
+
+
+  /* PROJECTS */
 
   if (tab === 'projects') {
     html = projectsTab();
   }
 
+
+  /* CERTIFICATES */
+
   if (tab === 'certificates') {
+
     html = arrayTab(
       'Certificates',
       'certificates',
+
       () => ({
         title: 'New Certificate',
         issuer: '',
@@ -267,22 +432,55 @@ function render(tab = 'profile') {
         description: '',
         url: ''
       }),
+
       i => `
         <div class="grid">
-          ${input('Certificate title', 'title', d.certificates[i].title)}
-          ${input('Issuer', 'issuer', d.certificates[i].issuer)}
-          ${input('Date', 'date', d.certificates[i].date)}
-          ${input('Verification URL', 'url', d.certificates[i].url)}
-          ${input('Description', 'description', d.certificates[i].description, true)}
+
+          ${input(
+            'Certificate title',
+            'title',
+            d.certificates[i].title
+          )}
+
+          ${input(
+            'Issuer',
+            'issuer',
+            d.certificates[i].issuer
+          )}
+
+          ${input(
+            'Date',
+            'date',
+            d.certificates[i].date
+          )}
+
+          ${input(
+            'Verification URL',
+            'url',
+            d.certificates[i].url
+          )}
+
+          ${input(
+            'Description',
+            'description',
+            d.certificates[i].description,
+            true
+          )}
+
         </div>
       `
     );
   }
 
+
+  /* ADDITIONAL DETAILS */
+
   if (tab === 'details') {
+
     html = arrayTab(
       'Additional Details',
       'details',
+
       () => ({
         title: 'New Detail',
         text: '',
@@ -290,42 +488,75 @@ function render(tab = 'profile') {
         url: '',
         place: 'beforeContact'
       }),
+
       i => `
         <div class="grid">
-          ${input('Title', 'title', d.details[i].title)}
-          ${input('Link title', 'linkTitle', d.details[i].linkTitle)}
-          ${input('Link URL', 'url', d.details[i].url)}
+
+          ${input(
+            'Title',
+            'title',
+            d.details[i].title
+          )}
+
+          ${input(
+            'Link title',
+            'linkTitle',
+            d.details[i].linkTitle
+          )}
+
+          ${input(
+            'Link URL',
+            'url',
+            d.details[i].url
+          )}
 
           <label>
             Placement
+
             <select data-key="place">
-              <option value="afterAbout" ${
-                d.details[i].place === 'afterAbout'
+
+              <option
+                value="afterAbout"
+                ${d.details[i].place === 'afterAbout'
                   ? 'selected'
-                  : ''
-              }>
+                  : ''}
+              >
                 After About
               </option>
 
-              <option value="beforeContact" ${
-                d.details[i].place !== 'afterAbout'
+              <option
+                value="beforeContact"
+                ${d.details[i].place !== 'afterAbout'
                   ? 'selected'
-                  : ''
-              }>
+                  : ''}
+              >
                 Before Contact
               </option>
+
             </select>
+
           </label>
 
-          ${input('Details', 'text', d.details[i].text, true)}
+          ${input(
+            'Details',
+            'text',
+            d.details[i].text,
+            true
+          )}
+
         </div>
       `
     );
   }
 
+
+  /* RESUME */
+
   if (tab === 'resume') {
+
     html = `
       <div class="card">
+
         <h2>Resume PDF</h2>
 
         <p class="hint">
@@ -338,15 +569,25 @@ function render(tab = 'profile') {
           accept="application/pdf"
         >
 
-        <p id="fileName" class="hint"></p>
+        <p
+          id="fileName"
+          class="hint"
+        ></p>
+
       </div>
     `;
   }
+
 
   app.innerHTML = html;
 
   wire(tab);
 }
+
+
+/* =========================
+   PROFILE TAB
+========================= */
 
 function profileTab() {
 
@@ -361,7 +602,11 @@ function profileTab() {
 
       <div class="grid">
 
-        ${input('Name', 'name', d.profile.name)}
+        ${input(
+          'Name',
+          'name',
+          d.profile.name
+        )}
 
         ${input(
           'Professional title',
@@ -410,122 +655,133 @@ function profileTab() {
 
       </div>
 
+
       <div class="profile-extra">
 
         <div class="bar">
 
           <div>
-            <h3>Additional Profile Fields</h3>
+
+            <h3>
+              Additional Profile Fields
+            </h3>
 
             <p>
-              Add location, designation, website,
-              social info or any other custom profile detail.
+              Add location, designation,
+              website, social info or any
+              other custom profile detail.
             </p>
+
           </div>
 
-          <button onclick="addProfileField()">
+          <button
+            onclick="addProfileField()"
+          >
             + Add New
           </button>
 
         </div>
 
-        ${
-          d.profile.extra
-            .map(
-              (x, i) => `
-                <div class="item">
 
-                  <div class="itemhead">
-                    <b>Profile Field ${i + 1}</b>
+        ${d.profile.extra.map((x, i) => `
 
-                    <button
-                      class="danger small"
-                      onclick="removeProfileField(${i})"
-                    >
-                      Delete
-                    </button>
-                  </div>
+          <div class="item">
 
-                  <div class="grid">
+            <div class="itemhead">
 
-                    ${extraInput(
-                      'Field name',
-                      'label',
-                      x.label,
-                      i
-                    )}
+              <b>
+                Profile Field ${i + 1}
+              </b>
 
-                    ${extraInput(
-                      'Value',
-                      'value',
-                      x.value,
-                      i
-                    )}
+              <button
+                class="danger small"
+                onclick="removeProfileField(${i})"
+              >
+                Delete
+              </button>
 
-                    ${extraInput(
-                      'Link URL (optional)',
-                      'url',
-                      x.url,
-                      i
-                    )}
+            </div>
 
-                    <label>
-                      Show in
 
-                      <select
-                        data-profile-extra="${i}"
-                        data-key="place"
-                      >
+            <div class="grid">
 
-                        <option
-                          value="hero"
-                          ${
-                            x.place === 'hero'
-                              ? 'selected'
-                              : ''
-                          }
-                        >
-                          Hero
-                        </option>
+              ${extraInput(
+                'Field name',
+                'label',
+                x.label,
+                i
+              )}
 
-                        <option
-                          value="about"
-                          ${
-                            x.place === 'about'
-                              ? 'selected'
-                              : ''
-                          }
-                        >
-                          About
-                        </option>
+              ${extraInput(
+                'Value',
+                'value',
+                x.value,
+                i
+              )}
 
-                        <option
-                          value="contact"
-                          ${
-                            x.place === 'contact'
-                              ? 'selected'
-                              : ''
-                          }
-                        >
-                          Contact
-                        </option>
+              ${extraInput(
+                'Link URL (optional)',
+                'url',
+                x.url,
+                i
+              )}
 
-                      </select>
-                    </label>
+              <label>
 
-                  </div>
+                Show in
 
-                </div>
-              `
-            )
-            .join('')
-        }
+                <select
+                  data-profile-extra="${i}"
+                  data-key="place"
+                >
+
+                  <option
+                    value="hero"
+                    ${x.place === 'hero'
+                      ? 'selected'
+                      : ''}
+                  >
+                    Hero
+                  </option>
+
+                  <option
+                    value="about"
+                    ${x.place === 'about'
+                      ? 'selected'
+                      : ''}
+                  >
+                    About
+                  </option>
+
+                  <option
+                    value="contact"
+                    ${x.place === 'contact'
+                      ? 'selected'
+                      : ''}
+                  >
+                    Contact
+                  </option>
+
+                </select>
+
+              </label>
+
+            </div>
+
+          </div>
+
+        `).join('')}
 
       </div>
 
     </div>
   `;
 }
+
+
+/* =========================
+   LINKS TAB
+========================= */
 
 function linksTab() {
 
@@ -535,12 +791,14 @@ function linksTab() {
       <div class="bar">
 
         <div>
+
           <h2>Links</h2>
 
           <p>
-            Add a link, give it a title and choose
-            where it appears.
+            Add a link, give it a title
+            and choose where it appears.
           </p>
+
         </div>
 
         <button onclick="addLink()">
@@ -549,93 +807,111 @@ function linksTab() {
 
       </div>
 
-      ${d.links
-        .map(
-          (x, i) => `
-            <div class="item">
 
-              <div class="itemhead">
+      ${d.links.map((x, i) => `
 
-                <b>Link ${i + 1}</b>
+        <div class="item">
 
-                <button
-                  class="danger small"
-                  onclick="removeItem('links', ${i})"
+          <div class="itemhead">
+
+            <b>
+              Link ${i + 1}
+            </b>
+
+            <button
+              class="danger small"
+              onclick="removeItem('links', ${i})"
+            >
+              Delete
+            </button>
+
+          </div>
+
+
+          <div class="row">
+
+            <label>
+
+              Title
+
+              <input
+                data-arr="links"
+                data-i="${i}"
+                data-key="title"
+                value="${esc(x.title)}"
+              >
+
+            </label>
+
+
+            <label>
+
+              URL
+
+              <input
+                data-arr="links"
+                data-i="${i}"
+                data-key="url"
+                value="${esc(x.url)}"
+              >
+
+            </label>
+
+
+            <label>
+
+              Place
+
+              <select
+                data-arr="links"
+                data-i="${i}"
+                data-key="place"
+              >
+
+                <option
+                  ${x.place === 'nav'
+                    ? 'selected'
+                    : ''}
                 >
-                  Delete
-                </button>
+                  nav
+                </option>
 
-              </div>
+                <option
+                  ${x.place === 'hero'
+                    ? 'selected'
+                    : ''}
+                >
+                  hero
+                </option>
 
-              <div class="row">
+                <option
+                  ${x.place === 'contact'
+                    ? 'selected'
+                    : ''}
+                >
+                  contact
+                </option>
 
-                <label>
-                  Title
-                  <input
-                    data-arr="links"
-                    data-i="${i}"
-                    data-key="title"
-                    value="${esc(x.title)}"
-                  >
-                </label>
+              </select>
 
-                <label>
-                  URL
-                  <input
-                    data-arr="links"
-                    data-i="${i}"
-                    data-key="url"
-                    value="${esc(x.url)}"
-                  >
-                </label>
+            </label>
 
-                <label>
-                  Place
+            <span></span>
 
-                  <select
-                    data-arr="links"
-                    data-i="${i}"
-                    data-key="place"
-                  >
-                    <option ${
-                      x.place === 'nav'
-                        ? 'selected'
-                        : ''
-                    }>
-                      nav
-                    </option>
+          </div>
 
-                    <option ${
-                      x.place === 'hero'
-                        ? 'selected'
-                        : ''
-                    }>
-                      hero
-                    </option>
+        </div>
 
-                    <option ${
-                      x.place === 'contact'
-                        ? 'selected'
-                        : ''
-                    }>
-                      contact
-                    </option>
-                  </select>
-
-                </label>
-
-                <span></span>
-
-              </div>
-
-            </div>
-          `
-        )
-        .join('')}
+      `).join('')}
 
     </div>
   `;
 }
+
+
+/* =========================
+   ARRAY TAB
+========================= */
 
 function arrayTab(title, arr, make, body) {
 
@@ -645,48 +921,60 @@ function arrayTab(title, arr, make, body) {
       <div class="bar">
 
         <div>
-          <h2>${title}</h2>
+
+          <h2>
+            ${title}
+          </h2>
 
           <p>
             Add, edit or delete
             ${title.toLowerCase()} entries.
           </p>
+
         </div>
 
-        <button onclick="addArray('${arr}')">
+        <button
+          onclick="addArray('${arr}')"
+        >
           + Add New ${title.replace(/s$/, '')}
         </button>
 
       </div>
 
-      ${d[arr]
-        .map(
-          (x, i) => `
-            <div class="item">
 
-              <div class="itemhead">
+      ${d[arr].map((x, i) => `
 
-                <b>${title} ${i + 1}</b>
+        <div class="item">
 
-                <button
-                  class="danger small"
-                  onclick="removeItem('${arr}', ${i})"
-                >
-                  Delete
-                </button>
+          <div class="itemhead">
 
-              </div>
+            <b>
+              ${title} ${i + 1}
+            </b>
 
-              ${body(i)}
+            <button
+              class="danger small"
+              onclick="removeItem('${arr}', ${i})"
+            >
+              Delete
+            </button>
 
-            </div>
-          `
-        )
-        .join('')}
+          </div>
+
+          ${body(i)}
+
+        </div>
+
+      `).join('')}
 
     </div>
   `;
 }
+
+
+/* =========================
+   PROJECTS TAB
+========================= */
 
 function projectsTab() {
 
@@ -696,124 +984,147 @@ function projectsTab() {
       <div class="bar">
 
         <div>
+
           <h2>Projects</h2>
 
           <p>
-            Add projects, edit them and attach
-            multiple links.
+            Add projects, edit them
+            and attach multiple links.
           </p>
+
         </div>
 
-        <button onclick="addArray('projects')">
+        <button
+          onclick="addArray('projects')"
+        >
           + Add New Project
         </button>
 
       </div>
 
-      ${d.projects
-        .map(
-          (x, i) => `
-            <div class="item">
 
-              <div class="itemhead">
+      ${d.projects.map((x, i) => `
 
-                <b>Project ${i + 1}</b>
+        <div class="item">
+
+          <div class="itemhead">
+
+            <b>
+              Project ${i + 1}
+            </b>
+
+            <button
+              class="danger small"
+              onclick="removeItem('projects', ${i})"
+            >
+              Delete
+            </button>
+
+          </div>
+
+
+          <div class="grid">
+
+            ${input(
+              'Project title',
+              'title',
+              x.title
+            )}
+
+            ${input(
+              'Tags (comma separated)',
+              'tags',
+              (x.tags || []).join(', ')
+            )}
+
+            ${input(
+              'Description',
+              'description',
+              x.description,
+              true
+            )}
+
+          </div>
+
+
+          <div class="linkbox">
+
+            <b>
+              Project links
+            </b>
+
+
+            ${(x.links || []).map((l, j) => `
+
+              <div
+                class="row"
+                style="margin-top:9px"
+              >
+
+                <label>
+
+                  Title
+
+                  <input
+                    data-proj="${i}"
+                    data-link="${j}"
+                    data-lkey="title"
+                    value="${esc(l.title)}"
+                  >
+
+                </label>
+
+
+                <label>
+
+                  URL
+
+                  <input
+                    data-proj="${i}"
+                    data-link="${j}"
+                    data-lkey="url"
+                    value="${esc(l.url)}"
+                  >
+
+                </label>
+
+
+                <span></span>
+
 
                 <button
                   class="danger small"
-                  onclick="removeItem('projects', ${i})"
+                  onclick="removeProjectLink(${i}, ${j})"
                 >
                   Delete
                 </button>
 
               </div>
 
-              <div class="grid">
+            `).join('')}
 
-                ${input(
-                  'Project title',
-                  'title',
-                  x.title
-                )}
 
-                ${input(
-                  'Tags (comma separated)',
-                  'tags',
-                  (x.tags || []).join(', ')
-                )}
+            <button
+              class="subbtn"
+              onclick="addProjectLink(${i})"
+            >
+              + Add Project Link
+            </button>
 
-                ${input(
-                  'Description',
-                  'description',
-                  x.description,
-                  true
-                )}
+          </div>
 
-              </div>
+        </div>
 
-              <div class="linkbox">
-
-                <b>Project links</b>
-
-                ${(x.links || [])
-                  .map(
-                    (l, j) => `
-                      <div
-                        class="row"
-                        style="margin-top:9px"
-                      >
-
-                        <label>
-                          Title
-                          <input
-                            data-proj="${i}"
-                            data-link="${j}"
-                            data-lkey="title"
-                            value="${esc(l.title)}"
-                          >
-                        </label>
-
-                        <label>
-                          URL
-                          <input
-                            data-proj="${i}"
-                            data-link="${j}"
-                            data-lkey="url"
-                            value="${esc(l.url)}"
-                          >
-                        </label>
-
-                        <span></span>
-
-                        <button
-                          class="danger small"
-                          onclick="removeProjectLink(${i}, ${j})"
-                        >
-                          Delete
-                        </button>
-
-                      </div>
-                    `
-                  )
-                  .join('')}
-
-                <button
-                  class="subbtn"
-                  onclick="addProjectLink(${i})"
-                >
-                  + Add Project Link
-                </button>
-
-              </div>
-
-            </div>
-          `
-        )
-        .join('')}
+      `).join('')}
 
     </div>
   `;
 }
+
+
+/* =========================
+   INPUT EVENTS
+========================= */
 
 function wire(tab) {
 
@@ -829,7 +1140,9 @@ function wire(tab) {
             +el.dataset.i
           ][el.dataset.key] = el.value;
 
-        } else if (
+        }
+
+        else if (
           el.dataset.profileExtra !== undefined
         ) {
 
@@ -837,12 +1150,33 @@ function wire(tab) {
             +el.dataset.profileExtra
           ][el.dataset.key] = el.value;
 
-        } else if (tab === 'profile') {
-
-          d.profile[el.dataset.key] = el.value;
         }
+
+        else if (tab === 'profile') {
+
+          d.profile[
+            el.dataset.key
+          ] = el.value;
+
+        }
+
+        else if (tab === 'details') {
+
+          const index =
+            [...document.querySelectorAll(
+              '[data-key="place"]'
+            )].indexOf(el);
+
+          if (index >= 0) {
+            d.details[index].place = el.value;
+          }
+
+        }
+
       };
+
     });
+
 
   document
     .querySelectorAll('[data-profile-extra]')
@@ -855,7 +1189,9 @@ function wire(tab) {
         ][el.dataset.key] = el.value;
 
       };
+
     });
+
 
   document
     .querySelectorAll('[data-proj]')
@@ -870,7 +1206,56 @@ function wire(tab) {
         ][el.dataset.lkey] = el.value;
 
       };
+
     });
+
+
+  /* Project main fields */
+
+  if (tab === 'projects') {
+
+    document
+      .querySelectorAll(
+        '.item .grid [data-key]'
+      )
+      .forEach((el, index) => {
+
+        const projectIndex =
+          Math.floor(index / 3);
+
+        if (
+          d.projects[projectIndex]
+        ) {
+
+          el.oninput = () => {
+
+            if (el.dataset.key === 'tags') {
+
+              d.projects[
+                projectIndex
+              ].tags = el.value
+                .split(',')
+                .map(x => x.trim())
+                .filter(Boolean);
+
+            } else {
+
+              d.projects[
+                projectIndex
+              ][el.dataset.key] = el.value;
+
+            }
+
+          };
+
+        }
+
+      });
+
+  }
+
+
+  /* Resume */
 
   if (tab === 'resume') {
 
@@ -880,8 +1265,15 @@ function wire(tab) {
     if (resumeFile) {
       resumeFile.onchange = uploadResume;
     }
+
   }
+
 }
+
+
+/* =========================
+   PROFILE ACTIONS
+========================= */
 
 function addProfileField() {
 
@@ -895,12 +1287,18 @@ function addProfileField() {
   render('profile');
 }
 
+
 function removeProfileField(i) {
 
   d.profile.extra.splice(i, 1);
 
   render('profile');
 }
+
+
+/* =========================
+   LINK ACTIONS
+========================= */
 
 function addLink() {
 
@@ -913,9 +1311,14 @@ function addLink() {
   render('links');
 }
 
+
+/* =========================
+   ARRAY ACTIONS
+========================= */
+
 function addArray(a) {
 
-  const templates = {
+  const x = {
 
     education: {
       title: 'Degree / Course',
@@ -964,16 +1367,14 @@ function addArray(a) {
       url: '',
       place: 'beforeContact'
     }
-  };
 
-  if (!templates[a]) return;
+  }[a];
 
-  d[a].push(
-    clone(templates[a])
-  );
+  d[a].push(x);
 
   render(a);
 }
+
 
 function removeItem(a, i) {
 
@@ -981,6 +1382,11 @@ function removeItem(a, i) {
 
   render(a);
 }
+
+
+/* =========================
+   PROJECT LINK ACTIONS
+========================= */
 
 function addProjectLink(i) {
 
@@ -992,6 +1398,7 @@ function addProjectLink(i) {
   render('projects');
 }
 
+
 function removeProjectLink(i, j) {
 
   d.projects[i].links.splice(j, 1);
@@ -999,75 +1406,100 @@ function removeProjectLink(i, j) {
   render('projects');
 }
 
+
+/* =========================
+   RESUME
+========================= */
+
 function uploadResume(e) {
 
-  const file = e.target.files[0];
+  const f = e.target.files[0];
 
-  if (!file) return;
+  if (!f) return;
 
-  if (file.size > 8 * 1024 * 1024) {
+
+  if (f.size > 8 * 1024 * 1024) {
 
     show('PDF is larger than 8 MB.');
 
     return;
   }
 
-  const reader = new FileReader();
 
-  reader.onload = () => {
+  const r = new FileReader();
+
+
+  r.onload = () => {
 
     localStorage.setItem(
       'portfolioResume',
-      reader.result
+      r.result
     );
 
-    show('Resume PDF saved locally.');
+    show('Resume PDF saved.');
+
   };
 
-  reader.readAsDataURL(file);
+
+  r.readAsDataURL(f);
 }
 
-function show(message) {
 
-  const status =
+/* =========================
+   STATUS MESSAGE
+========================= */
+
+function show(t) {
+
+  const s =
     document.getElementById('status');
 
-  status.textContent = message;
-  status.style.display = 'block';
+  if (!s) return;
+
+  s.textContent = t;
+
+  s.style.display = 'block';
+
 
   setTimeout(() => {
 
-    status.style.display = 'none';
+    s.style.display = 'none';
 
   }, 3000);
 }
 
 
-/* ------------------------------
-   ADMIN SAVE TO SUPABASE
--------------------------------- */
+/* =========================
+   NAVIGATION
+========================= */
 
 document
   .querySelectorAll('.side')
-  .forEach(button => {
+  .forEach(b => {
 
-    button.onclick = () => {
-      render(button.dataset.tab);
-    };
+    b.onclick = () =>
+      render(b.dataset.tab);
 
   });
 
 
-document.getElementById('save').onclick =
-  async () => {
+/* =========================
+   SAVE TO SUPABASE
+========================= */
 
-    // Always keep a local backup
+document
+  .getElementById('save')
+  .onclick = async () => {
+
+    /* Always save locally too */
     localStorage.setItem(
       'portfolioData',
       JSON.stringify(d)
     );
 
-    // Check Supabase connection
+
+    /* Check Supabase connection */
+
     if (!window.supabaseClient) {
 
       console.error(
@@ -1075,177 +1507,200 @@ document.getElementById('save').onclick =
       );
 
       show(
-        'Supabase is not connected. Check supabase-config.js'
+        'Saved locally, but Supabase is not connected.'
       );
 
       return;
     }
 
+
     try {
 
+      /*
+        Your Supabase table contains ONLY:
+
+        id
+        created_at
+        data
+
+        Therefore we save the complete
+        portfolio object inside data.
+      */
+
       const payload = {
-
-        id: 1,
-
-        name: d.profile.name || '',
-
-        title: d.profile.title || '',
-
-        mobile: d.profile.mobile || '',
-
-        email: d.profile.email || '',
-
-        bio: d.profile.bio || '',
-
-        about_title:
-          d.profile.aboutTitle || '',
-
-        about:
-          d.profile.about || '',
-
-        data: d,
-
-        updated_at:
-          new Date().toISOString()
+        data: d
       };
 
-      console.log(
-        'Sending to Supabase:',
-        payload
-      );
 
-      const result =
-        await window.supabaseClient
-          .from('portfolio')
-          .update(payload)
-          .eq('id', 1)
-          .select()
-          .single();
+      const {
+        data: result,
+        error
+      } = await window.supabaseClient
 
-      if (result.error) {
+        .from('portfolio')
+
+        .update(payload)
+
+        .eq('id', 1)
+
+        .select();
+
+
+      if (error) {
 
         console.error(
-          'SUPABASE ERROR:',
-          result.error
+          'Supabase save error:',
+          error
         );
 
         show(
-          'Supabase error: ' +
-          result.error.message
+          'Supabase save failed: ' +
+          error.message
         );
 
         return;
       }
 
+
       console.log(
-        'Saved successfully:',
-        result.data
+        'Portfolio saved to Supabase:',
+        result
       );
 
+
       show(
-        '✓ Changes saved to Supabase'
+        'Changes saved to Supabase successfully.'
       );
+
 
     } catch (error) {
 
       console.error(
-        'SAVE ERROR:',
+        'Supabase save exception:',
         error
       );
 
       show(
-        'Supabase error: ' +
+        'Supabase save failed: ' +
         error.message
       );
+
     }
+
   };
 
 
-document.getElementById('preview').onclick =
-  () => {
+/* =========================
+   PREVIEW
+========================= */
 
+document
+  .getElementById('preview')
+  .onclick = () =>
     window.open(
       'index.html',
       '_blank'
     );
 
-  };
 
-
-/* ------------------------------
+/* =========================
    LOAD FROM SUPABASE
--------------------------------- */
+========================= */
 
 async function loadRemoteAdmin() {
 
   if (!window.supabaseClient) {
 
     console.warn(
-      'Supabase client not available.'
+      'Supabase client not connected.'
     );
 
     return;
   }
 
+
   try {
 
-    const result =
-      await window.supabaseClient
-        .from('portfolio')
-        .select('data')
-        .eq('id', 1)
-        .maybeSingle();
+    const {
+      data: row,
+      error
+    } = await window.supabaseClient
 
-    if (result.error) {
+      .from('portfolio')
+
+      .select('data')
+
+      .eq('id', 1)
+
+      .maybeSingle();
+
+
+    if (error) {
 
       console.error(
         'Supabase load error:',
-        result.error
+        error
       );
 
       return;
     }
 
-    if (
-      !result.data ||
-      !result.data.data
-    ) {
+
+    if (!row || !row.data) {
 
       console.log(
-        'No remote portfolio data yet.'
+        'No portfolio data found in Supabase yet.'
       );
 
       return;
     }
+
+
+    /*
+      Replace local data with
+      Supabase data.
+    */
 
     d = {
       ...d,
-      ...result.data.data,
-      profile:
-        normalizeProfile(
-          result.data.data.profile
-        )
+      ...row.data,
+      profile: normalizeProfile(
+        row.data.profile
+      )
     };
 
+
+    /* Update browser copy */
+
+    localStorage.setItem(
+      'portfolioData',
+      JSON.stringify(d)
+    );
+
+
     render();
+
 
     show(
       'Loaded from Supabase.'
     );
 
+
   } catch (error) {
 
-    console.warn(
-      'Supabase load failed; using local data.',
+    console.error(
+      'Supabase load failed:',
       error
     );
+
   }
+
 }
 
 
-/* ------------------------------
-   START ADMIN
--------------------------------- */
+/* =========================
+   START
+========================= */
 
 render();
 
