@@ -72,8 +72,6 @@ function normalizeProfile(p) {
     ? clone(profile.extra)
     : [];
 
-  // Support old data where Mobile was accidentally stored
-  // as an Additional Profile Field.
   const mobileExtra = extras.find(
     x =>
       String(x.label || '')
@@ -513,8 +511,7 @@ function render(tab = 'profile') {
           <label>
             Placement
 
-            <select data-key="place">
-
+            <select data-arr="details" data-i="${i}" data-key="place">
               <option
                 value="afterAbout"
                 ${d.details[i].place === 'afterAbout'
@@ -532,7 +529,6 @@ function render(tab = 'profile') {
               >
                 Before Contact
               </option>
-
             </select>
 
           </label>
@@ -869,6 +865,7 @@ function linksTab() {
               >
 
                 <option
+                  value="nav"
                   ${x.place === 'nav'
                     ? 'selected'
                     : ''}
@@ -877,6 +874,7 @@ function linksTab() {
                 </option>
 
                 <option
+                  value="hero"
                   ${x.place === 'hero'
                     ? 'selected'
                     : ''}
@@ -885,6 +883,7 @@ function linksTab() {
                 </option>
 
                 <option
+                  value="contact"
                   ${x.place === 'contact'
                     ? 'selected'
                     : ''}
@@ -1132,7 +1131,12 @@ function wire(tab) {
     .querySelectorAll('[data-key]')
     .forEach(el => {
 
-      el.oninput = () => {
+      const event =
+        el.tagName === 'SELECT'
+          ? 'change'
+          : 'input';
+
+      el.addEventListener(event, () => {
 
         if (el.dataset.arr) {
 
@@ -1163,17 +1167,19 @@ function wire(tab) {
         else if (tab === 'details') {
 
           const index =
-            [...document.querySelectorAll(
-              '[data-key="place"]'
-            )].indexOf(el);
+            +el.dataset.i;
 
-          if (index >= 0) {
-            d.details[index].place = el.value;
+          if (
+            !Number.isNaN(index) &&
+            d.details[index]
+          ) {
+            d.details[index][el.dataset.key] =
+              el.value;
           }
 
         }
 
-      };
+      });
 
     });
 
@@ -1182,13 +1188,18 @@ function wire(tab) {
     .querySelectorAll('[data-profile-extra]')
     .forEach(el => {
 
-      el.onchange = () => {
+      const event =
+        el.tagName === 'SELECT'
+          ? 'change'
+          : 'input';
+
+      el.addEventListener(event, () => {
 
         d.profile.extra[
           +el.dataset.profileExtra
         ][el.dataset.key] = el.value;
 
-      };
+      });
 
     });
 
@@ -1218,18 +1229,27 @@ function wire(tab) {
       .querySelectorAll(
         '.item .grid [data-key]'
       )
-      .forEach((el, index) => {
+      .forEach(el => {
+
+        const item =
+          el.closest('.item');
+
+        const items =
+          [...document.querySelectorAll('.item')];
 
         const projectIndex =
-          Math.floor(index / 3);
+          items.indexOf(item);
 
         if (
+          projectIndex >= 0 &&
           d.projects[projectIndex]
         ) {
 
           el.oninput = () => {
 
-            if (el.dataset.key === 'tags') {
+            if (
+              el.dataset.key === 'tags'
+            ) {
 
               d.projects[
                 projectIndex
@@ -1492,6 +1512,7 @@ document
   .onclick = async () => {
 
     /* Always save locally too */
+
     localStorage.setItem(
       'portfolioData',
       JSON.stringify(d)
@@ -1516,19 +1537,9 @@ document
 
     try {
 
-      /*
-        Your Supabase table contains ONLY:
-
-        id
-        created_at
-        data
-
-        Therefore we save the complete
-        portfolio object inside data.
-      */
-
       const payload = {
-        data: d
+        data: d,
+        updated_at: new Date().toISOString()
       };
 
 
@@ -1537,7 +1548,7 @@ document
         error
       } = await window.supabaseClient
 
-        .from('portfolio')
+        .from('portfolio_data')
 
         .update(payload)
 
@@ -1626,7 +1637,7 @@ async function loadRemoteAdmin() {
       error
     } = await window.supabaseClient
 
-      .from('portfolio')
+      .from('portfolio_data')
 
       .select('data')
 
