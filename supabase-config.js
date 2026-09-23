@@ -1,6 +1,6 @@
 // Paste your Supabase Project URL and Publishable key here.
 // Do NOT put a secret/service_role key in this file.
-window.SUPABASE_URL = "https://hjgxzpfbyevisssuteps.supabase.co/rest/v1/";
+window.SUPABASE_URL = "https://hjgxzpfbyevisssuteps.supabase.co";
 
 window.SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_6rqyiBlM3Mcxo2kyMxXPEQ_KpcZms9g";
