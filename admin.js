@@ -1538,6 +1538,7 @@ document
     try {
 
       const payload = {
+        id: 1,
         data: d,
         updated_at: new Date().toISOString()
       };
@@ -1548,11 +1549,9 @@ document
         error
       } = await window.supabaseClient
 
-        .from('portfolio_data')
+        .from('portfolio')
 
-        .update(payload)
-
-        .eq('id', 1)
+        .upsert(payload)
 
         .select();
 
@@ -1637,7 +1636,7 @@ async function loadRemoteAdmin() {
       error
     } = await window.supabaseClient
 
-      .from('portfolio_data')
+      .from('portfolio')
 
       .select('data')
 
