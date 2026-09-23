@@ -3,7 +3,7 @@
 window.SUPABASE_URL = "https://hjgxzpfbyevisssuteps.supabase.co/rest/v1/";
 window.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_6rqyiBlM3Mcxo2kyMxXPEQ_KpcZms9g";
 
-if (window.SUPABASE_URL.startsWith("http") && !window.SUPABASE_URL.includes("https://hjgxzpfbyevisssuteps.supabase.co/rest/v1/")) {
+if (window.SUPABASE_URL.startsWith("http") && !window.SUPABASE_URL.includes("PASTE_PROJECT_URL")) {
   window.supabaseClient = window.supabase.createClient(
     window.SUPABASE_URL,
     window.SUPABASE_PUBLISHABLE_KEY
