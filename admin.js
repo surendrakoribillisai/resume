@@ -531,6 +531,7 @@ function render(tab = "profile") {
         { label: "Stream / Specialization", key: "stream" },
         { label: "CGPA", key: "cgpa" },
         { label: "Percentage", key: "percentage" },
+        { label: "Marks", key: "marks" },
         { label: "Grade / Class", key: "grade" },
         { label: "Link", key: "url" },
         {
