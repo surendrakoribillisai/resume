@@ -735,6 +735,7 @@ function addItem(type) {
       stream: "",
       cgpa: "",
       percentage: "",
+      marks: "",
       grade: "",
       description: "",
       url: ""
